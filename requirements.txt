@@ -5,3 +5,8 @@ openai
 markdown
 weasyprint
 gradio
+markdown2
+pdfkit
+PyPDF2
+requests
+python-dotenv
