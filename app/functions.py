@@ -9,6 +9,9 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import concurrent.futures
+import requests
+MAX_RESUME_CHARS = 2000
+MAX_JD_CHARS = 1000
 
 # --- CONFIG ---
 USE_OLLAMA = True  # set to False to go back to OpenAI
@@ -19,7 +22,7 @@ if USE_OLLAMA:
         api_key="ollama",  # dummy key, not used
         base_url="http://localhost:11434/v1"  # Ollama's OpenAI-compatible endpoint
     )
-    DEFAULT_MODEL = "mistral"   # model thats pulled with `ollama pull` in powershell
+    DEFAULT_MODEL = "phi3:mini"   # model thats pulled with `ollama pull` in powershell
 else:
     # Standard OpenAI API setup
     load_dotenv()
@@ -63,24 +66,26 @@ Your task is to tailor my resume to fit the job description.
 
 
 
-def get_resume_response(prompt: str, model: str = DEFAULT_MODEL, temperature: float = 0.7) -> str:
+def get_resume_response(prompt: str, model: str = DEFAULT_MODEL) -> str:
     try:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(
-                lambda: client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": "Expert resume writer"},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=temperature
-                )
-            )
-            return future.result(timeout=300).choices[0].message.content  # timeout 300s
-    except concurrent.futures.TimeoutError:
-        return "⚠️ Took too long (>5 minutes). Try a smaller model or shorter resume/job description."
+        r = requests.post(
+            "http://localhost:11434/v1/chat/completions",
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": "Expert resume writer"},
+                    {"role": "user", "content": prompt}
+                ]
+            },
+            timeout=60  # seconds
+        )
+        r.raise_for_status()
+        return r.json()["choices"][0]["message"]["content"]
+    except requests.exceptions.Timeout:
+        return "⚠️ Took too long (over 60s). Try a smaller model or shorten input."
     except Exception as e:
         return f"⚠️ Error generating response: {str(e)}"
+
 
 
 def load_resume(file_path: str) -> str:
