@@ -5,3 +5,4 @@
 - Generates a new resume in Markdown with an "Additional Suggestions" section.
 - Export final resume to PDF.
 - Built with **Python, Gradio, Ollama/OpenAI APIs, PyPDF2, pdfkit, markdown2**.
+- Hosted online via Hugging Face Spaces for easy sharing and live demos.
